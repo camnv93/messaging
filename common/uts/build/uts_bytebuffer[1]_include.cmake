@@ -1,0 +1,5 @@
+if(EXISTS "/home/devcpp/messaging/common/uts/build/uts_bytebuffer[1]_tests.cmake")
+  include("/home/devcpp/messaging/common/uts/build/uts_bytebuffer[1]_tests.cmake")
+else()
+  add_test(uts_bytebuffer_NOT_BUILT uts_bytebuffer_NOT_BUILT)
+endif()

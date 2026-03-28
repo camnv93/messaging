@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,-soname,libcommon.so.1 -o libcommon.so.1.0.0 CMakeFiles/common.dir/src/utils/nbo.cpp.o CMakeFiles/common.dir/src/buffer/byte_buffer.cpp.o 

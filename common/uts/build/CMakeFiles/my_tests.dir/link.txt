@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/my_tests.dir/UTS_NBO.cpp.o -o my_tests  /usr/local/lib/libgtest_main.a /usr/local/lib/libgmock_main.a /usr/local/lib/libgmock.a /usr/local/lib/libgtest.a 

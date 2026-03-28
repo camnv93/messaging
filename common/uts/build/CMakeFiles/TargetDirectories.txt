@@ -1,0 +1,4 @@
+/home/devcpp/messaging/common/uts/build/CMakeFiles/uts_nbo.dir
+/home/devcpp/messaging/common/uts/build/CMakeFiles/uts_bytebuffer.dir
+/home/devcpp/messaging/common/uts/build/CMakeFiles/edit_cache.dir
+/home/devcpp/messaging/common/uts/build/CMakeFiles/rebuild_cache.dir

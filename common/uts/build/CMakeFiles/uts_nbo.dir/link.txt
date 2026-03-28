@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/uts_nbo.dir/UTS_NBO.cpp.o -o uts_nbo  /usr/local/lib/libgtest_main.a /usr/local/lib/libgtest.a 
