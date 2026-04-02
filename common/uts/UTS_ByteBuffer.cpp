@@ -4,8 +4,8 @@
 
 #include "buffer/byte_buffer.cpp"
 #include "utils/nbo.cpp"
-
-using namespace msg::common;
+#include "utils/bit_convert.cpp"
+using namespace msghub::common;
 
 TEST(ByteBufferTest, ByteBufferTest_WriteU16_TC001) {
   ByteBuffer buff;
@@ -76,4 +76,12 @@ TEST(ByteBufferTest, ByteBufferTest_WriteAt_TC001) {
   for (int i = 6; i < 10; i++) {
     EXPECT_EQ(data[i], write_data[i-6]);
   }
+}
+
+TEST(ByteBufferTest, ByteBufferTest_SkipWrite_TC001) {
+  ByteBuffer buff;
+  buff.SkipWrite(10);
+  buff.WriteUInt16(0xFF01);
+  buff.Dump();
+  EXPECT_EQ(buff.Size(), 12);
 }

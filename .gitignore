@@ -39,3 +39,11 @@
 
 # debug information files
 *.dwo
+build/
+cmake-build-*
+/common/cmake-build-*
+/common/build/*
+/common/uts/build/*
+/hub/build/**
+/net/build/**
+third_party/

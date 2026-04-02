@@ -1,7 +1,0 @@
-add_test( nbotest.to_network_u16_tc001 /home/devcpp/messaging/common/uts/build/uts_nbo [==[--gtest_filter=nbotest.to_network_u16_tc001]==] --gtest_also_run_disabled_tests)
-set_tests_properties( nbotest.to_network_u16_tc001 PROPERTIES WORKING_DIRECTORY /home/devcpp/messaging/common/uts/build SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-add_test( nbotest.to_network_u16_tc002 /home/devcpp/messaging/common/uts/build/uts_nbo [==[--gtest_filter=nbotest.to_network_u16_tc002]==] --gtest_also_run_disabled_tests)
-set_tests_properties( nbotest.to_network_u16_tc002 PROPERTIES WORKING_DIRECTORY /home/devcpp/messaging/common/uts/build SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-add_test( nbotest.to_network_u16_tc003 /home/devcpp/messaging/common/uts/build/uts_nbo [==[--gtest_filter=nbotest.to_network_u16_tc003]==] --gtest_also_run_disabled_tests)
-set_tests_properties( nbotest.to_network_u16_tc003 PROPERTIES WORKING_DIRECTORY /home/devcpp/messaging/common/uts/build SKIP_REGULAR_EXPRESSION [==[\[  SKIPPED \]]==])
-set( uts_nbo_TESTS nbotest.to_network_u16_tc001 nbotest.to_network_u16_tc002 nbotest.to_network_u16_tc003)

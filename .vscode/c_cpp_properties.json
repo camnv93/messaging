@@ -1,0 +1,38 @@
+{
+  "env": {
+    "myIncludePath": [
+      "${workspaceFolder}/common/include",
+      // "${workspaceFolder}/lib_build/include",
+      // "${workspaceFolder}/lib_build/include/common",
+      "${workspaceFolder}/hub/client/include"
+    ],
+    "myDefines": [
+      "DEBUG",
+      "MY_FEATURE=1"
+    ]
+  },
+  "configurations": [
+    {
+      "name": "OS",
+      "compilerPath": "/usr/bin/clang",
+      "intelliSenseMode": "linux-clang-arm64",
+      "includePath": [
+        "${myIncludePath}",
+        "${workspaceFolder}/**"
+      ],
+      "defines": [
+        "${myDefines}"
+      ],
+      "cStandard": "c11",
+      "cppStandard": "c++14",
+      "browse": {
+        "path": [
+          "${myIncludePath}",
+          "${workspaceFolder}"
+        ]
+      }
+    }
+  ],
+  "version": 4,
+  "enableConfigurationSquiggles": true
+}

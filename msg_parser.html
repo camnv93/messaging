@@ -1,0 +1,350 @@
+<!-- <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Structure Analyzer (Big Endian)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; margin: 20px; background-color: #f0f2f5; }
+        .container { max-width: 950px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 10px; margin-top: 0; }
+        .input-group { margin-bottom: 20px; }
+        textarea { width: 100%; height: 120px; padding: 12px; border: 2px solid #dee2e6; border-radius: 8px; box-sizing: border-box; font-family: 'Courier New', monospace; font-size: 14px; resize: vertical; }
+        textarea:focus { border-color: #1a73e8; outline: none; }
+        button { background-color: #1a73e8; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background-color: #1557b0; }
+        .result-section { margin-top: 30px; display: none; border-top: 1px solid #eee; padding-top: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; font-size: 14px; }
+        table, th, td { border: 1px solid #e0e0e0; }
+        th { background-color: #f8f9fa; color: #5f6368; padding: 10px; text-align: left; }
+        td { padding: 10px; color: #202124; }
+        .highlight { font-weight: 600; color: #d93025; font-family: 'Courier New', monospace; }
+        .payload-box { background: #202124; color: #34a853; padding: 15px; border-radius: 8px; word-break: break-all; font-family: 'Courier New', monospace; border: 1px solid #000; line-height: 1.4; }
+        .badge { background: #e8f0fe; color: #1967d2; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Phân Tích Tin Nhắn <span style="font-size: 0.6em; color: #666;">(Big Endian Mode)</span></h2>
+    
+    <div class="input-group">
+        <label>Dán chuỗi dữ liệu Hex:</label>
+        <textarea id="hexInput" placeholder="Ví dụ: A5 A5 01 00 00 08 00 00 00 01 00 0A 00 0B 00 04 FF EE DD CC 11 22 33 44"></textarea>
+        <button onclick="analyzeMessage()">Phân Tích Cấu Trúc</button>
+    </div>
+
+    <div id="result" class="result-section">
+        <h3>1. Thông tin Message Header <span class="badge">16 Bytes</span></h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Trường dữ liệu</th>
+                    <th>Offset</th>
+                    <th>Kiểu</th>
+                    <th>Hex (Big Endian)</th>
+                    <th>Giá trị (Dec)</th>
+                </tr>
+            </thead>
+            <tbody id="headerBody"></tbody>
+        </table>
+
+        <div class="grid" style="margin-top: 25px;">
+            <div>
+                <h3>2. Payload (Dữ liệu thô)</h3>
+                <div class="payload-box" id="payloadDisplay"></div>
+            </div>
+            <div>
+                <h3>3. Checksum Cuối</h3>
+                <table>
+                    <tr>
+                        <th>Trường</th>
+                        <th>Kiểu</th>
+                        <th>Giá trị</th>
+                    </tr>
+                    <tr>
+                        <td>Payload Checksum</td>
+                        <td>uint32_t</td>
+                        <td class="highlight" id="payloadChecksum"></td>
+                    </tr>
+                </table>
+                <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                    * <b>Big Endian:</b> Byte có trọng số lớn nhất (MSB) được lưu ở địa chỉ thấp nhất.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function analyzeMessage() {
+        // Làm sạch chuỗi input (xóa khoảng trắng, dấu phẩy, x, v.v.)
+        let rawHex = document.getElementById('hexInput').value.replace(/[^0-9A-Fa-f]/g, '');
+        
+        if (rawHex.length < 40) { 
+            alert("Dữ liệu quá ngắn! Cần ít nhất 16 byte Header + 4 byte Checksum.");
+            return;
+        }
+
+        const bytes = new Uint8Array(rawHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        
+        // --- HÀM ĐỌC BIG ENDIAN ---
+        // Đọc 16-bit: Byte[i] là MSB, Byte[i+1] là LSB
+        const readUI16BE = (idx) => (bytes[idx] << 8) | bytes[idx + 1];
+        
+        // Đọc 32-bit: Byte[i]...Byte[i+3] từ cao đến thấp
+        const readUI32BE = (idx) => {
+            return ((bytes[idx] << 24) | (bytes[idx + 1] << 16) | (bytes[idx + 2] << 8) | bytes[idx + 3]) >>> 0;
+        };
+
+        // 1. Cấu trúc Message Header
+        const headerFields = [
+            { name: "Magic", size: 2, offset: 0, type: "uint16_t" },
+            { name: "Version", size: 1, offset: 2, type: "uint8_t" },
+            { name: "Header Checksum", size: 1, offset: 3, type: "uint8_t" },
+            { name: "Message Type", size: 1, offset: 4, type: "uint8_t" },
+            { name: "TTL", size: 1, offset: 5, type: "uint8_t" },
+            { name: "Flags", size: 2, offset: 6, type: "uint16_t" },
+            { name: "Event Type", size: 2, offset: 8, type: "uint16_t" },
+            { name: "Source ID", size: 2, offset: 10, type: "uint16_t" },
+            { name: "Destination ID", size: 2, offset: 12, type: "uint16_t" },
+            { name: "Payload Size", size: 2, offset: 14, type: "uint16_t" }
+        ];
+
+        let headerHtml = "";
+        let pSize = 0;
+
+        headerFields.forEach(f => {
+            let val = 0;
+            if (f.size === 1) val = bytes[f.offset];
+            else if (f.size === 2) val = readUI16BE(f.offset);
+            
+            if (f.name === "Payload Size") pSize = val;
+
+            headerHtml += `<tr>
+                <td>${f.name}</td>
+                <td>${f.offset}</td>
+                <td><code>${f.type}</code></td>
+                <td class="highlight">0x${val.toString(16).toUpperCase().padStart(f.size * 2, '0')}</td>
+                <td>${val}</td>
+            </tr>`;
+        });
+        document.getElementById('headerBody').innerHTML = headerHtml;
+
+        // 2. Xử lý Payload
+        const payloadStart = 16;
+        const payloadEnd = payloadStart + pSize;
+        
+        if (bytes.length < payloadEnd + 4) {
+            document.getElementById('payloadDisplay').innerHTML = `<span style="color: #ea4335;">Lỗi: Dữ liệu bị cụt. Payload Size yêu cầu ${pSize} bytes nhưng không đủ.</span>`;
+            document.getElementById('payloadChecksum').innerText = "N/A";
+        } else {
+            const payloadBytes = bytes.slice(payloadStart, payloadEnd);
+            let payloadHex = Array.from(payloadBytes).map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+            document.getElementById('payloadDisplay').innerText = payloadHex || "(Trống)";
+            
+            // 3. Payload Checksum (uint32_t Big Endian)
+            const checksumVal = readUI32BE(payloadEnd);
+            document.getElementById('payloadChecksum').innerText = "0x" + checksumVal.toString(16).toUpperCase().padStart(8, '0') + ` (${checksumVal})`;
+        }
+
+        document.getElementById('result').style.display = 'block';
+    }
+</script>
+
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Structure Toolkit (Big Endian)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; margin: 20px; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 10px; }
+        h3 { color: #5f6368; margin-top: 25px; }
+        
+        .section { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 30px; }
+        
+        /* Grid Layout cho Generator */
+        .gen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .input-item { display: flex; flex-direction: column; }
+        .input-item label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; }
+        
+        button { background-color: #1a73e8; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 15px; }
+        button:hover { background-color: #1557b0; }
+        button.secondary { background-color: #34a853; }
+
+        .output-box { margin-top: 15px; padding: 15px; background: #202124; color: #00ff00; border-radius: 6px; word-break: break-all; font-family: 'Courier New', monospace; min-height: 40px; border: 2px solid #000; }
+
+        table { width: 100%; border-collapse: collapse; background: white; font-size: 14px; margin-top: 10px; }
+        table, th, td { border: 1px solid #e0e0e0; }
+        th { background-color: #f1f3f4; padding: 10px; text-align: left; }
+        td { padding: 10px; }
+        .highlight { color: #d93025; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Message Structure Toolkit (Big Endian)</h2>
+
+    <!-- SECTION 1: GENERATOR -->
+    <div class="section">
+        <h3>1. Tạo chuỗi Hex (Generator)</h3>
+        <div class="gen-grid">
+            <div class="input-item">
+                <label>Magic (uint16)</label>
+                <input type="text" id="g_magic" value="A5A5">
+            </div>
+            <div class="input-item">
+                <label>Version (uint8)</label>
+                <input type="number" id="g_ver" value="1">
+            </div>
+            <div class="input-item">
+                <label>Header Checksum (uint8)</label>
+                <input type="number" id="g_h_sum" value="0">
+            </div>
+            <div class="input-item">
+                <label>Msg Type (uint8)</label>
+                <input type="number" id="g_type" value="0">
+            </div>
+            <div class="input-item">
+                <label>TTL (uint8)</label>
+                <input type="number" id="g_ttl" value="8">
+            </div>
+            <div class="input-item">
+                <label>Flags (uint16)</label>
+                <input type="number" id="g_flags" value="0">
+            </div>
+            <div class="input-item">
+                <label>Event Type (uint16)</label>
+                <input type="number" id="g_event" value="0">
+            </div>
+            <div class="input-item">
+                <label>Source ID (uint16)</label>
+                <input type="number" id="g_src" value="0">
+            </div>
+            <div class="input-item">
+                <label>Dest ID (uint16)</label>
+                <input type="number" id="g_dest" value="0">
+            </div>
+            <div class="input-item" style="grid-column: span 2;">
+                <label>Payload Hex (Để trống nếu null)</label>
+                <input type="text" id="g_payload" placeholder="Ví dụ: 11 22 AA BB">
+            </div>
+            <div class="input-item">
+                <label>Payload Checksum (uint32)</label>
+                <input type="number" id="g_p_sum" value="0">
+            </div>
+        </div>
+        <button class="secondary" onclick="generateHex()">Tạo chuỗi Hex ↓</button>
+        <div class="output-box" id="genOutput">Chuỗi Hex sẽ xuất hiện ở đây...</div>
+    </div>
+
+    <!-- SECTION 2: ANALYZER -->
+    <div class="section">
+        <h3>2. Phân tích chuỗi Hex (Analyzer)</h3>
+        <textarea id="hexInput" placeholder="Dán chuỗi hex cần phân tích vào đây..."></textarea>
+        <button onclick="analyzeMessage()">Phân Tích Dữ Liệu</button>
+
+        <div id="result" style="display:none;">
+            <table>
+                <thead>
+                    <tr><th>Trường</th><th>Offset</th><th>Kiểu</th><th>Hex (BE)</th><th>Dec</th></tr>
+                </thead>
+                <tbody id="headerBody"></tbody>
+            </table>
+            <p><strong>Payload:</strong></p>
+            <div class="output-box" id="payloadDisplay" style="color: #34a853;"></div>
+            <p><strong>Payload Checksum:</strong> <span class="highlight" id="payloadChecksum"></span></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- HELPER FUNCTIONS ---
+    function toHex(val, bytes) {
+        return val.toString(16).toUpperCase().padStart(bytes * 2, '0');
+    }
+
+    function hexToBytes(hex) {
+        hex = hex.replace(/[^0-9A-Fa-f]/g, '');
+        let res = [];
+        for (let i = 0; i < hex.length; i += 2) res.push(parseInt(hex.substr(i, 2), 16));
+        return res;
+    }
+
+    // --- GENERATOR LOGIC ---
+    function generateHex() {
+        try {
+            let hex = "";
+            // Header
+            hex += toHex(parseInt(document.getElementById('g_magic').value, 16), 2);
+            hex += toHex(parseInt(document.getElementById('g_ver').value), 1);
+            hex += toHex(parseInt(document.getElementById('g_h_sum').value), 1);
+            hex += toHex(parseInt(document.getElementById('g_type').value), 1);
+            hex += toHex(parseInt(document.getElementById('g_ttl').value), 1);
+            hex += toHex(parseInt(document.getElementById('g_flags').value), 2);
+            hex += toHex(parseInt(document.getElementById('g_event').value), 2);
+            hex += toHex(parseInt(document.getElementById('g_src').value), 2);
+            hex += toHex(parseInt(document.getElementById('g_dest').value), 2);
+            
+            // Tính toán payload
+            let pRaw = document.getElementById('g_payload').value.replace(/\s+/g, '');
+            let pBytes = hexToBytes(pRaw);
+            hex += toHex(pBytes.length, 2); // Payload Size field
+            
+            // Thêm Payload
+            hex += pRaw.toUpperCase();
+            
+            // Checksum
+            hex += toHex(parseInt(document.getElementById('g_p_sum').value), 4);
+
+            document.getElementById('genOutput').innerText = hex.match(/.{1,2}/g).join(' ');
+        } catch(e) {
+            alert("Lỗi nhập liệu: Hãy kiểm tra các giá trị số!");
+        }
+    }
+
+    // --- ANALYZER LOGIC ---
+    function analyzeMessage() {
+        let rawHex = document.getElementById('hexInput').value.replace(/[^0-9A-Fa-f]/g, '');
+        if (rawHex.length < 40) { alert("Dữ liệu quá ngắn!"); return; }
+
+        const b = new Uint8Array(rawHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+        const read16 = (i) => (b[i] << 8) | b[i+1];
+        const read32 = (i) => ((b[i] << 24) | (b[i+1] << 16) | (b[i+2] << 8) | b[i+3]) >>> 0;
+
+        const fields = [
+            ["Magic", 0, 2, "uint16"], ["Version", 2, 1, "uint8"], ["H-Checksum", 3, 1, "uint8"],
+            ["Msg Type", 4, 1, "uint8"], ["TTL", 5, 1, "uint8"], ["Flags", 6, 2, "uint16"],
+            ["Event Type", 8, 2, "uint16"], ["Source", 10, 2, "uint16"], ["Dest", 12, 2, "uint16"],
+            ["Payload Size", 14, 2, "uint16"]
+        ];
+
+        let html = "", pSize = 0;
+        fields.forEach(f => {
+            let val = (f[2] === 1) ? b[f[1]] : read16(f[1]);
+            if (f[0] === "Payload Size") pSize = val;
+            html += `<tr><td>${f[0]}</td><td>${f[1]}</td><td>${f[3]}</td><td class="highlight">0x${toHex(val, f[2])}</td><td>${val}</td></tr>`;
+        });
+
+        document.getElementById('headerBody').innerHTML = html;
+        let pEnd = 16 + pSize;
+        let payloadHex = Array.from(b.slice(16, pEnd)).map(x => toHex(x,1)).join(' ');
+        document.getElementById('payloadDisplay').innerText = payloadHex || "(Null)";
+        
+        let cSum = read32(pEnd);
+        document.getElementById('payloadChecksum').innerText = "0x" + toHex(cSum, 4) + ` (${cSum})`;
+        document.getElementById('result').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>

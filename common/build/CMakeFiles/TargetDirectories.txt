@@ -1,3 +1,0 @@
-/home/devcpp/messaging/common/build/CMakeFiles/common.dir
-/home/devcpp/messaging/common/build/CMakeFiles/edit_cache.dir
-/home/devcpp/messaging/common/build/CMakeFiles/rebuild_cache.dir

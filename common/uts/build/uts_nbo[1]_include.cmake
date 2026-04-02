@@ -1,5 +1,0 @@
-if(EXISTS "/home/devcpp/messaging/common/uts/build/uts_nbo[1]_tests.cmake")
-  include("/home/devcpp/messaging/common/uts/build/uts_nbo[1]_tests.cmake")
-else()
-  add_test(uts_nbo_NOT_BUILT uts_nbo_NOT_BUILT)
-endif()

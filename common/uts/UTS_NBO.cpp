@@ -3,7 +3,7 @@
 #include <iostream>
 #include "utils/nbo.cpp"
 
-using namespace msg::common;
+using namespace msghub::common;
 
 TEST(nbotest, to_network_u16_tc001) {
   uint16_t host = 0x1234;

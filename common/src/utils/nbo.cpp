@@ -1,7 +1,7 @@
-#include "nbo.h"
+#include "common/utils/nbo.h"
 #include <netinet/in.h>
 
-  namespace msg::common {
+  namespace msghub::common {
 
     // host -> network (big-endian)
     uint32_t nbo::to_network_u32(uint32_t value) noexcept {
@@ -21,4 +21,4 @@
       return ntohs(value);
     }
 
-  } // namespace msg::common
+  } // namespace msghub::common
